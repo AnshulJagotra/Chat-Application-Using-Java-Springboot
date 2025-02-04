@@ -1,0 +1,161 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f4;
+  margin: 0;
+  padding: 0;
+}
+
+#chat-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.chat-container {
+  max-width: 700px;
+  width: 100%;
+  background: #fff;
+  box-shadow: 0 1px 11px rgba(0, 0, 0, 0.27);
+  border-radius: 8px;
+  height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-header {
+  padding: 20px;
+  border-bottom: 1px solid #e8e8e8;
+  text-align: center;
+}
+
+.chat-header h2 {
+  margin: 0;
+  font-weight: 500;
+}
+
+.connecting {
+  padding: 20px;
+  text-align: center;
+  color: #777;
+}
+
+.hidden {
+  display: none;
+}
+
+#messageArea {
+  flex-grow: 1;
+  padding: 20px;
+  overflow-y: auto;
+  list-style-type: none;
+}
+
+.chat-message {
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  background-color: #f1f0f0;
+}
+
+.chat-message span {
+  font-weight: bold;
+  color: #333;
+}
+
+.chat-message p {
+  margin: 5px 0 0 0;
+}
+
+.timestamp {
+  font-size: 0.8em;
+  color: #999;
+  float: right;
+}
+
+.event-message {
+  text-align: center;
+  color: #777;
+  margin: 10px 0;
+}
+
+#messageForm {
+  padding: 20px;
+  border-top: 1px solid #e8e8e8;
+}
+
+#message {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  resize: none;
+}
+
+button {
+  padding: 10px 20px;
+  background-color: #4caf50;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+button:hover {
+  background-color: #45a049;
+}
+
+.user-list {
+  width: 200px;
+  background-color: #f8f8f8;
+  padding: 20px;
+  border-left: 1px solid #e8e8e8;
+}
+
+.user-list h3 {
+  margin-top: 0;
+}
+
+.user-list ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+#typingIndicator {
+  font-style: italic;
+  color: #777;
+  padding: 10px;
+}
+
+.emoji {
+  height: 1.2em;
+  width: 1.2em;
+  margin: 0 .05em 0 .1em;
+  vertical-align: -0.1em;
+}
+
+.structured-message {
+  background-color: #e6f7ff;
+  border: 1px solid #91d5ff;
+  border-radius: 4px;
+  padding: 10px;
+  margin-bottom: 15px;
+}
+
+.structured-message pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0;
+}
+
+#structuredMessage {
+  width: 100%;
+  height: 100px;
+  margin-bottom: 10px;
+}
+

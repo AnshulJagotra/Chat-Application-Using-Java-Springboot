@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Spring Boot WebSocket Chat Application</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <script src="https://twemoji.maxcdn.com/v/latest/twemoji.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/json5/2.2.0/index.min.js"></script>
+</head>
+<body>
+    <div id="chat-page">
+        <div class="chat-container">
+            <div class="chat-header">
+                <h2>Spring WebSocket Chat Demo</h2>
+            </div>
+            <div class="connecting">
+                Connecting...
+            </div>
+            <ul id="messageArea">
+                <li th:each="message : ${messages}" th:class="${'chat-message ' + message.type.name().toLowerCase()}">
+                    <span th:text="${message.sender}"></span>
+                    <p th:text="${message.content}"></p>
+                    <span class="timestamp" th:text="${#temporals.format(message.timestamp, 'HH:mm')}"></span>
+                </li>
+            </ul>
+            <div id="typingIndicator" class="hidden">
+                <p><span id="typingUsername"></span> is typing...</p>
+            </div>
+            <form id="messageForm" name="messageForm">
+                <div class="form-group">
+                    <div class="input-group clearfix">
+                        <input type="text" id="message" placeholder="Type a message..." autocomplete="off" class="form-control"/>
+                        <button type="submit" class="primary">Send</button>
+                    </div>
+                </div>
+            </form>
+            <form id="structuredMessageForm" name="structuredMessageForm">
+                <div class="form-group">
+                    <div class="input-group clearfix">
+                        <textarea id="structuredMessage" placeholder="Type a structured message..." autocomplete="off" class="form-control"></textarea>
+                        <button type="submit" class="primary">Send Structured</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="user-list">
+            <h3>Online Users</h3>
+            <ul id="userList"></ul>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        var stompClient = null;
+        var username = null;
+        var typingTimeout = null;
+
+        function connect() {
+            username = prompt('Please enter your name:', '');
+            if(username) {
+                var socket = new SockJS('/chat-websocket');
+                stompClient = Stomp.over(socket);
+                stompClient.connect({}, onConnected, onError);
+            }
+        }
+
+        function onConnected() {
+            stompClient.subscribe('/topic/public', onMessageReceived);
+            stompClient.send("/app/chat.addUser",
+                {},
+                JSON.stringify({sender: username, type: 'JOIN'})
+            )
+            document.querySelector('.connecting').classList.add('hidden');
+        }
+
+        function onError(error) {
+            console.log('Could not connect to WebSocket server. Please refresh this page to try again!');
+        }
+
+        function sendMessage(event) {
+            var messageContent = document.querySelector('#message').value.trim();
+            if(messageContent && stompClient) {
+                var chatMessage = {
+                    sender: username,
+                    content: messageContent,
+                    type: 'CHAT'
+                };
+                stompClient.send("/app/chat.sendMessage", {}, JSON.stringify(chatMessage));
+                document.querySelector('#message').value = '';
+            }
+            event.preventDefault();
+        }
+
+        function onMessageReceived(payload) {
+            var message = JSON.parse(payload.body);
+            var messageElement = document.createElement('li');
+
+            if(message.type === 'JOIN') {
+                messageElement.classList.add('event-message');
+                message.content = message.sender + ' joined!';
+            } else if (message.type === 'LEAVE') {
+                messageElement.classList.add('event-message');
+                message.content = message.sender + ' left!';
+            } else if (message.type === 'TYPING') {
+                document.querySelector('#typingIndicator').classList.remove('hidden');
+                document.querySelector('#typingUsername').textContent = message.sender;
+                clearTimeout(typingTimeout);
+                typingTimeout = setTimeout(() => {
+                    document.querySelector('#typingIndicator').classList.add('hidden');
+                }, 3000);
+                return;
+            } else if(message.type === 'STRUCTURED') {
+                messageElement.classList.add('structured-message');
+                var structuredDataElement = document.createElement('pre');
+                structuredDataElement.textContent = JSON.stringify(message.structuredData, null, 2);
+                messageElement.appendChild(structuredDataElement);
+            } else {
+                messageElement.classList.add('chat-message');
+                var usernameElement = document.createElement('span');
+                var usernameText = document.createTextNode(message.sender);
+                usernameElement.appendChild(usernameText);
+                messageElement.appendChild(usernameElement);
+            }
+
+            var textElement = document.createElement('p');
+            var messageText = document.createTextNode(message.content);
+            textElement.appendChild(messageText);
+
+            var timestampElement = document.createElement('span');
+            timestampElement.classList.add('timestamp');
+            var date = new Date(message.timestamp);
+            var timestampText = document.createTextNode(date.getHours() + ':' + ('0' + date.getMinutes()).slice(-2));
+            timestampElement.appendChild(timestampText);
+
+            messageElement.appendChild(textElement);
+            messageElement.appendChild(timestampElement);
+
+            document.querySelector('#messageArea').appendChild(messageElement);
+            document.querySelector('#messageArea').scrollTop = document.querySelector('#messageArea').scrollHeight;
+
+            // Convert emoji to images
+            twemoji.parse(document.body);
+        }
+
+        function sendTypingNotification() {
+            stompClient.send("/app/chat.typing", {}, JSON.stringify({sender: username, type: 'TYPING'}));
+        }
+
+        function sendStructuredMessage(event) {
+            var messageContent = document.querySelector('#structuredMessage').value.trim();
+            if(messageContent && stompClient) {
+                try {
+                    var structuredData = JSON5.parse(messageContent);
+                    var chatMessage = {
+                        sender: username,
+                        content: 'Structured Message',
+                        type: 'STRUCTURED',
+                        structuredData: structuredData
+                    };
+                    stompClient.send("/app/chat.sendStructuredMessage", {}, JSON.stringify(chatMessage));
+                    document.querySelector('#structuredMessage').value = '';
+                } catch (e) {
+                    alert('Invalid JSON format. Please check your input.');
+                }
+            }
+            event.preventDefault();
+        }
+
+        document.querySelector('#messageForm').addEventListener('submit', sendMessage, true);
+        document.querySelector('#message').addEventListener('input', sendTypingNotification);
+        document.querySelector('#structuredMessageForm').addEventListener('submit', sendStructuredMessage, true);
+        window.addEventListener('load', connect, true);
+    </script>
+</body>
+</html>
+
